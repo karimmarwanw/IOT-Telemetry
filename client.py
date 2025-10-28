@@ -1,32 +1,37 @@
 import socket
-import struct
 import random
 import time
+import struct
+
+HOST = '127.0.0.1'
+PORT = 4444
 
 INIT = 0
 DATA = 1
 HEARTBEAT = 2
-protocol_version = 1
-device_id = 1
-sequence_number = 0
 
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-host = '127.0.0.1'
-port = 65432
+device_ID = 1 #B
+sequence_number = 0 #H
+protocol_version = 1 #B
+battery_health = 100 #B
 
-header_format = '!B B H I B' # protocol_version, device_id, sequence_number, timestamp, msg_type
+protocol_header = '!B B H I B B'
 
-def build_header(msg_type):
+def build_header(message_type):
     global sequence_number
     sequence_number += 1
     timestamp = int(time.time())
-    return struct.pack(header_format, protocol_version, device_id, sequence_number, timestamp, msg_type)
+    global battery_health
+    if sequence_number % 5 == 0:
+        battery_health -= 1
+    return struct.pack(protocol_header, protocol_version, device_ID, sequence_number, timestamp, message_type, battery_health)
 
-#INIT message
-message = "welcome to our IOT temperature sensor"
-init_payload = message.encode()
+client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+message = "connected to the server"
+init_payload = message.encode('utf-8')
 init_header = build_header(INIT)
-s.sendto(init_header + init_payload, (host, port))
+client.sendto(init_header + init_payload, (HOST, PORT))
 print("INIT sent")
 
 last_data_time = 0
@@ -42,7 +47,7 @@ while True:
         temp = random.randint(34, 40)
         data_payload = str(temp).encode()
         data_header = build_header(DATA)
-        s.sendto(data_header + data_payload, (host, port))
+        client.sendto(data_header + data_payload, (HOST, PORT))
         print(f"sent DATA: temp={temp}")
         last_data_time = now
 
@@ -51,8 +56,13 @@ while True:
         message = "the sensor is still alive"
         heartbeat_payload = message.encode()
         heartbeat_header = build_header(HEARTBEAT)
-        s.sendto(heartbeat_header + heartbeat_payload, (host, port))
+        client.sendto(heartbeat_header + heartbeat_payload, (HOST, PORT))
         print("sent HEARTBEAT")
         last_heartbeat_time = now
 
+    if battery_health <= 0:
+        print("Battery depleted. Stopping client.")
+        break
     time.sleep(0.1)
+
+client.close()

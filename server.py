@@ -2,7 +2,11 @@ import socket
 import struct
 import time
 
-header_format = '!B B H I B'
+HOST = '127.0.0.1'
+PORT = 4444
+SIZE = 1024
+
+header_format = '!B B H I B B'
 header_size = struct.calcsize(header_format)
 
 message_types = {
@@ -11,38 +15,34 @@ message_types = {
     2: "HEARTBEAT"
 }
 
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-host = "127.0.0.1"
-port = 65432
-s.bind((host, port))
+server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+server.bind((HOST, PORT))
 
-print(f"Server is listening on {host}:{port}")
+print(f"Server listening on {HOST}:{PORT}")
 
 while True:
-    data, address = s.recvfrom(1024)
+    message, address = server.recvfrom(SIZE)
 
-    header = data[:header_size] # make that first 9 bytes are the header bytes
-    payload = data[header_size:] # and rest are payload
+    header_bytes = message[:header_size]
+    payload_bytes = message[header_size:]
 
-    protocol_version, device_id, seq, timestamp, msg_type= struct.unpack(header_format, header)
-    msg_name = message_types.get(msg_type, "undefined") # if message type in message_types ok else undefined
+    protocol_version, device_ID, sequence_number, timestamp, message_type, battery_health = struct.unpack(header_format, header_bytes)
 
     ts_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))
 
     print(f"packet from: {address}")
     print(f"protocol version: {protocol_version}")
-    print(f"device ID: {device_id}")
-    print(f"sequence number: {seq}")
+    print(f"device ID: {device_ID}")
+    print(f"sequence number: {sequence_number}")
     print(f"timestamp: {ts_str}")
-    print(f"message Type: {msg_name}")
+    print(f"message Type: {message_types.get(message_type, 'undefined')}")
+    print(f"battery health: {battery_health}%")
 
-    if msg_name == "DATA":
-        print(f"temperature: {payload.decode()}")
-    elif msg_name == "HEARTBEAT":
-        print(f"payload: {payload.decode()}")
-    elif msg_name == "INIT":
-        print(f"payload: {payload.decode()}")
-    else :
-        print("unknown message type")
+    if message_type == 0:  # INIT
+        print(f"payload: {payload_bytes.decode()}")
+    elif message_type == 1:  # DATA
+        print(f"temperature: {payload_bytes.decode()}")
+    elif message_type == 2:  # HEARTBEAT
+        print(f"payload: {payload_bytes.decode()}")
 
     print("-------------------------------------")
