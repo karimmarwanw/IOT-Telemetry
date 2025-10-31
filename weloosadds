@@ -1,0 +1,78 @@
+import socket
+import random
+import time
+import struct
+
+HOST = '127.0.0.1'
+PORT = 4444
+
+INIT = 0
+DATA = 1
+HEARTBEAT = 2
+
+device_ID = 1  # B
+sequence_number = 0  # H
+protocol_version = 1  # B
+battery_health = 100  # B
+
+protocol_header = '!B B H I B B'
+
+def build_header(message_type):
+    global sequence_number
+    global battery_health
+    sequence_number = (sequence_number + 1) & 0xFFFF  # wrap after 65535
+    timestamp = int(time.time())
+    if sequence_number % 5 == 0 and battery_health > 0:
+        battery_health -= 1
+    return struct.pack(
+        protocol_header,
+        protocol_version,
+        device_ID,
+        sequence_number,
+        timestamp,
+        message_type,
+        max(battery_health, 0)
+    )
+
+client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+message = "connected to the server"
+init_payload = message.encode('utf-8')
+init_header = build_header(INIT)
+client.sendto(init_header + init_payload, (HOST, PORT))
+print("INIT sent")
+
+last_data_time = 0
+last_heartbeat_time = 0
+DATA_INTERVAL = 4
+HEARTBEAT_INTERVAL = 1
+
+try:
+    while True:
+        now = time.time()
+
+        # Data message
+        if now - last_data_time >= DATA_INTERVAL:
+            temp = random.randint(34, 40)
+            data_payload = str(temp).encode()
+            data_header = build_header(DATA)
+            client.sendto(data_header + data_payload, (HOST, PORT))
+            print(f"sent DATA: temp={temp}")
+            last_data_time = now
+
+        # Heartbeat message
+        if now - last_heartbeat_time >= HEARTBEAT_INTERVAL:
+            message = "the sensor is still alive"
+            heartbeat_payload = message.encode()
+            heartbeat_header = build_header(HEARTBEAT)
+            client.sendto(heartbeat_header + heartbeat_payload, (HOST, PORT))
+            print("sent HEARTBEAT")
+            last_heartbeat_time = now
+
+        if battery_health <= 0:
+            print("Battery depleted. Stopping client.")
+            break
+
+        time.sleep(0.1)
+finally:
+    client.close()
