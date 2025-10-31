@@ -1,0 +1,68 @@
+import socket
+import struct
+import time
+
+HOST = '127.0.0.1'
+PORT = 4444
+SIZE = 1024
+
+header_format = '!B B H I B B'
+header_size = struct.calcsize(header_format)
+
+message_types = {
+    0: "INIT",
+    1: "DATA",
+    2: "HEARTBEAT"
+}
+
+server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+####server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)####
+server.bind((HOST, PORT))
+
+print(f"Server listening on {HOST}:{PORT}")
+
+try:
+    while True:
+        message, address = server.recvfrom(SIZE)
+
+        # 1) Guard against short or malformed packets
+        if len(message) < header_size:
+            print(f"short packet from {address} len={len(message)} < {header_size}")
+            continue
+
+        header_bytes = message[:header_size]
+        payload_bytes = message[header_size:]
+
+        try:
+            protocol_version, device_ID, sequence_number, timestamp, message_type, battery_health = struct.unpack(
+                header_format, header_bytes
+            )
+        except struct.error as e:
+            print(f"bad header from {address}: {e}")
+            continue
+
+        ts_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))
+
+        print(f"packet from: {address}")
+        print(f"protocol version: {protocol_version}")
+        print(f"device ID: {device_ID}")
+        print(f"sequence number: {sequence_number}")
+        print(f"timestamp: {ts_str}")
+        print(f"message Type: {message_types.get(message_type, 'undefined')}")
+        print(f"battery health: {battery_health}%")
+
+        # 2) Safe decode of payload
+        payload_text = payload_bytes.decode('utf-8', errors='replace')
+
+        if message_type == 0:  # INIT
+            print(f"payload: {payload_text}")
+        elif message_type == 1:  # DATA
+            print(f"temperature: {payload_text}")
+        elif message_type == 2:  # HEARTBEAT
+            print(f"payload: {payload_text}")
+
+        print("-------------------------------------")
+except KeyboardInterrupt:
+    pass
+finally:
+    server.close()
