@@ -30,7 +30,6 @@ Standard IoT protocols (like MQTT or CoAP) introduce overhead and reliability me
 ### 🖥 Server — `server.py`
 - Listens on a UDP port for incoming telemetry packets.
 - Parses the 10-byte header and extracts fields.
-- Logs each message to CSV with:
 
 ---
 
