@@ -40,12 +40,18 @@ You can easily run the baseline (Phase 1) test locally using the provided **`bas
 ### 🧩 Prerequisites
 - Python 3.8+ installed  
 - Both `client.py` and `server.py` located in the same directory  
-- Linux/macOS terminal or WSL on Windows  
+- Linux/macOS terminal or git on Windows  
 
-### 🧠 Steps
+### 🧠 Steps for linux/macOS:
  ```bash
  git clone https://github.com/karimmarwanw/IOT-Telemetry.git
  cd IOT-Telemetry
  chmod +x baseline.sh
  sudo bash baseline.sh
+ ```
+### 🧠 Steps for windows:
+1.	Open Command Prompt in the project directory
+2.  Run:
+ ```bash
+ windows.bat
  ```
