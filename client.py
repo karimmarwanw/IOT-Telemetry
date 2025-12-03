@@ -3,66 +3,100 @@ import random
 import time
 import struct
 
-HOST = '127.0.0.1'
+HOST = "127.0.0.1"
 PORT = 4444
 
+# Message types
 INIT = 0
 DATA = 1
 HEARTBEAT = 2
 
-device_ID = 1 #B
-sequence_number = 0 #H
-protocol_version = 1 #B
-battery_health = 100 #B
+# Initial temporary device ID (server will assign real one)
+device_ID = 0
 
-protocol_header = '!B B H I B B'
+# Protocol fields
+protocol_version = 1
+sequence_number = 0
+battery_health = 100
 
-def build_header(message_type):
-    global sequence_number
+protocol_header = "!B B H I B B"
+
+
+def build_header(msg_type):
+    global sequence_number, battery_health
+
     sequence_number += 1
     timestamp = int(time.time())
-    global battery_health
+
     if sequence_number % 5 == 0:
         battery_health -= 1
-    return struct.pack(protocol_header, protocol_version, device_ID, sequence_number, timestamp, message_type, battery_health)
+
+    return struct.pack(
+        protocol_header,
+        protocol_version,
+        device_ID,
+        sequence_number,
+        timestamp,
+        msg_type,
+        battery_health
+    )
+
 
 client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-message = "connected to the server"
-init_payload = message.encode('utf-8')
+# ==========================================
+# SEND INIT (device_ID = 0)
+# ==========================================
+init_msg = b"client booting"
 init_header = build_header(INIT)
-client.sendto(init_header + init_payload, (HOST, PORT))
-print("INIT sent")
+client.sendto(init_header + init_msg, (HOST, PORT))
+print("[CLIENT] Sent INIT with device_ID = 0")
 
-last_data_time = 0
-last_heartbeat_time = 0
+# ==========================================
+# RECEIVE assigned device ID
+# ==========================================
+resp, addr = client.recvfrom(1024)
+
+resp_header = resp[:struct.calcsize(protocol_header)]
+pv, assigned_id, _, _, _, _ = struct.unpack(protocol_header, resp_header)
+
+device_ID = assigned_id
+print(f"[CLIENT] Assigned device ID = {device_ID}")
+
+# Now device_ID is correct for all future messages
+
+
+# Timers
 DATA_INTERVAL = 4
 HEARTBEAT_INTERVAL = 1
+last_data = 0
+last_hb = 0
 
+# ==========================================
+# MAIN LOOP
+# ==========================================
 while True:
     now = time.time()
 
-    # Data message
-    if now - last_data_time >= DATA_INTERVAL:
+    # Send DATA every 4 seconds
+    if now - last_data >= DATA_INTERVAL:
         temp = random.randint(34, 40)
-        data_payload = str(temp).encode()
         data_header = build_header(DATA)
-        client.sendto(data_header + data_payload, (HOST, PORT))
-        print(f"sent DATA: temp={temp}")
-        last_data_time = now
+        client.sendto(data_header + str(temp).encode(), (HOST, PORT))
+        print(f"[CLIENT] Sent DATA temp={temp}")
+        last_data = now
 
-    # Heartbeat message
-    if now - last_heartbeat_time >= HEARTBEAT_INTERVAL:
-        message = "the sensor is still alive"
-        heartbeat_payload = message.encode()
-        heartbeat_header = build_header(HEARTBEAT)
-        client.sendto(heartbeat_header + heartbeat_payload, (HOST, PORT))
-        print("sent HEARTBEAT")
-        last_heartbeat_time = now
+    # Send HEARTBEAT every 1 second
+    if now - last_hb >= HEARTBEAT_INTERVAL:
+        hb_header = build_header(HEARTBEAT)
+        client.sendto(hb_header + b"alive", (HOST, PORT))
+        print("[CLIENT] Sent HEARTBEAT")
+        last_hb = now
 
     if battery_health <= 0:
-        print("Battery depleted. Stopping client.")
+        print("[CLIENT] Battery depleted. Stopping.")
         break
+
     time.sleep(0.1)
 
 client.close()
