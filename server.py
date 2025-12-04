@@ -22,6 +22,9 @@ next_device_id = 1
 # Per-device state
 device_state = {}
 
+# Time-based reordering window (seconds)
+REORDER_WINDOW = 0.050
+
 
 def get_device_state(device_id):
     if device_id not in device_state:
@@ -35,13 +38,23 @@ def get_device_state(device_id):
     return device_state[device_id]
 
 
-def flush_ordered_packets(state, device_id):
+def flush_ready_packets(state, device_id, now_arrival):
+
     while state["buffer"]:
+        ts, seq, payload, msg_type, arrival = state["buffer"][0]
+        if now_arrival - arrival < REORDER_WINDOW:
+            break
+
         ts, seq, payload, msg_type, arrival = heapq.heappop(state["buffer"])
         ts_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts))
 
         print(f"[ORDERED] device={device_id} seq={seq} ts={ts_str} "
               f"type={message_types.get(msg_type)} payload={payload.decode(errors='replace')}")
+
+        if msg_type == 1:
+            print(f"DATA (ordered): temp={payload.decode(errors='replace')}")
+        elif msg_type == 2:
+            print(f"HEARTBEAT (ordered): {payload.decode(errors='replace')}")
 
 
 # Start server
@@ -61,16 +74,13 @@ while True:
     print("-------------------------------------")
     print(f"Packet from {address}")
     print(f"protocol version: {pv}")
-    print(f"client device_ID sent: {dev_id}")
+    print(f"device ID: {dev_id}")
     print(f"sequence number: {seq}")
     print(f"timestamp: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))}")
     print(f"message type: {message_types.get(msg_type)}")
     print(f"battery: {battery}%")
 
-    # ============================================
-    # INIT handshake: client sends dev_id = 0
-    # Server assigns a new ID and sends it back
-    # ============================================
+    # INIT handshake
     if msg_type == 0 and dev_id == 0:
         assigned_id = next_device_id
         next_device_id += 1
@@ -78,22 +88,21 @@ while True:
         print(f"[SERVER] New device connected → assigned device_ID = {assigned_id}")
         get_device_state(assigned_id)
 
-        # Send response containing assigned ID
         resp_header = struct.pack(
             header_format,
-            pv,              # protocol version
-            assigned_id,     # **new device ID**
-            0,               # seq = 0 for assignment response
+            pv,             # same protocol version
+            assigned_id,    # new device ID
+            0,              # seq for response
             int(time.time()),
-            0,               # message type = INIT
-            100              # dummy battery
+            0,              # INIT type
+            100             # dummy battery
         )
 
         server.sendto(resp_header + b"ASSIGNED_ID", address)
         print(f"[SERVER] Sent assigned ID {assigned_id} to {address}")
         continue
 
-    # Normal message (device must already be assigned)
+    # Normal message
     state = get_device_state(dev_id)
     state["recv_count"] += 1
 
@@ -101,7 +110,8 @@ while True:
     if seq <= state["last_seq"]:
         state["dup_count"] += 1
         print(f"[DUPLICATE] device={dev_id} seq={seq} ignored")
-        print(f"[STATE] dev={dev_id} recv={state['recv_count']} dups={state['dup_count']} gaps={state['gap_count']}")
+        print(f"[STATE] dev={dev_id} recv={state['recv_count']} "
+              f"dups={state['dup_count']} gaps={state['gap_count']}")
         continue
 
     # Gap detection
@@ -109,18 +119,12 @@ while True:
     if seq > expected and state["last_seq"] != 0:
         missing = seq - expected
         state["gap_count"] += missing
-        print(f"[GAP] device={dev_id}: missing {missing} packets (expected {expected}, got {seq})")
+        print(f"[GAP] device={dev_id}: missing {missing} packets "
+              f"(expected {expected}, got {seq})")
 
     state["last_seq"] = seq
 
-    # Reordering buffer
     heapq.heappush(state["buffer"], (timestamp, seq, payload, msg_type, arrival))
-    flush_ordered_packets(state, dev_id)
-
-    # Raw message print
-    if msg_type == 1:
-        print(f"DATA: temp={payload.decode(errors='replace')}")
-    elif msg_type == 2:
-        print(f"HEARTBEAT: {payload.decode(errors='replace')}")
-
-    print(f"[STATE] dev={dev_id} recv={state['recv_count']} dups={state['dup_count']} gaps={state['gap_count']}")
+    flush_ready_packets(state, dev_id, arrival)
+    print(f"[STATE] recv={state['recv_count']} "
+          f"dups={state['dup_count']} gaps={state['gap_count']}")

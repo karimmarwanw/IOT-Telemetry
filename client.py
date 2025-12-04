@@ -41,20 +41,14 @@ def build_header(msg_type):
         battery_health
     )
 
-
 client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-# ==========================================
-# SEND INIT (device_ID = 0)
-# ==========================================
+# INIT handshake
 init_msg = b"client booting"
 init_header = build_header(INIT)
 client.sendto(init_header + init_msg, (HOST, PORT))
 print("[CLIENT] Sent INIT with device_ID = 0")
 
-# ==========================================
-# RECEIVE assigned device ID
-# ==========================================
 resp, addr = client.recvfrom(1024)
 
 resp_header = resp[:struct.calcsize(protocol_header)]
@@ -63,18 +57,12 @@ pv, assigned_id, _, _, _, _ = struct.unpack(protocol_header, resp_header)
 device_ID = assigned_id
 print(f"[CLIENT] Assigned device ID = {device_ID}")
 
-# Now device_ID is correct for all future messages
-
-
 # Timers
 DATA_INTERVAL = 4
 HEARTBEAT_INTERVAL = 1
 last_data = 0
 last_hb = 0
 
-# ==========================================
-# MAIN LOOP
-# ==========================================
 while True:
     now = time.time()
 
