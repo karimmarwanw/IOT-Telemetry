@@ -16,144 +16,115 @@ message_types = {
     2: "HEARTBEAT"
 }
 
-# Auto-increment device IDs
 next_device_id = 1
-
 device_state = {}
 
-TS_WINDOW = 0.5
+# Reorder window based on SENSOR TIMESTAMP
+TS_WINDOW = 0.5    # seconds – safe for jitter + delay
 
 
-def get_device_state(device_id: int):
-    if device_id not in device_state:
-        device_state[device_id] = {
-            "last_seq": 0,
-            "recv_count": 0,
-            "dup_count": 0,
-            "gap_count": 0,
-            "buffer": [],
-            "newest_ts": 0,
+def get_state(dev_id):
+    if dev_id not in device_state:
+        device_state[dev_id] = {
+            "buffer": [],          # (timestamp, seq, payload, msg_type)
+            "last_seq": 0,         # last flushed sequence
+            "recv": 0,
+            "dups": 0,
+            "gaps": 0,
+            "newest_ts": 0         # newest timestamp seen for this device
         }
-    return device_state[device_id]
+    return device_state[dev_id]
 
 
-def flush_ready_packets(state, device_id):
-
-    newest_ts = state["newest_ts"]
+def flush(state, dev_id):
+    """
+    This is the ONLY place where:
+    ✔ gaps are detected
+    ✔ duplicates are detected
+    ✔ ordered packets are printed
+    """
 
     while state["buffer"]:
-        oldest_ts = state["buffer"][0][0]  # peek earliest timestamp
+        oldest_ts = state["buffer"][0][0]
+        newest_ts = state["newest_ts"]
 
-        # If this packet's timestamp is not older than the window,
-        # keep waiting for more packets.
+        # Wait until we are SURE no earlier packet can still arrive
         if newest_ts - oldest_ts <= TS_WINDOW:
             break
 
-        # Pop the earliest timestamp (tie-broken by seq)
-        ts, seq, payload, msg_type, arrival = heapq.heappop(state["buffer"])
-
+        # Pop in true timestamp order
+        ts, seq, payload, msg_type = heapq.heappop(state["buffer"])
         expected = state["last_seq"] + 1
 
-        # GAP detection (true gap – earlier seq never arrived in time)
+        # GAP detection (correct)
         if seq > expected and state["last_seq"] != 0:
             missing = seq - expected
-            state["gap_count"] += missing
-            print(
-                f"[GAP] device={device_id}: missing {missing} packets "
-                f"(expected {expected}, got {seq})"
-            )
+            state["gaps"] += missing
+            print(f"[GAP] device={dev_id}: missing {missing} packets "
+                  f"(expected {expected}, got {seq})")
 
-        # Duplicate detection (seq already flushed)
+        # DUP detection (correct)
         elif seq <= state["last_seq"]:
-            state["dup_count"] += 1
-            print(f"[DUPLICATE] device={device_id} seq={seq} ignored (late/duplicate)")
-            # Don't update last_seq or print this payload as ordered
+            state["dups"] += 1
+            print(f"[DUPLICATE] device={dev_id} seq={seq} ignored (late)")
             continue
 
-        # Update last processed sequence
+        # Advance sequence
         state["last_seq"] = seq
 
-        # Print ordered view
-        ts_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts))
-        print(
-            f"[ORDERED] device={device_id} seq={seq} ts={ts_str} "
-            f"type={message_types.get(msg_type)} payload={payload.decode(errors='replace')}"
-        )
+        # Print ordered output
+        formatted_ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts))
+        print(f"[ORDERED] device={dev_id} seq={seq} ts={formatted_ts} "
+              f"type={message_types[msg_type]} payload={payload.decode()}")
 
         if msg_type == 1:
-            print(f"DATA (ordered): temp={payload.decode(errors='replace')}")
+            print(f"DATA (ordered): {payload.decode()}")
         elif msg_type == 2:
-            print(f"HEARTBEAT (ordered): {payload.decode(errors='replace')}")
+            print(f"HEARTBEAT (ordered): {payload.decode()}")
 
 
-# =========================
-# SERVER MAIN LOOP
-# =========================
-
+# Start server
 server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 server.bind((HOST, PORT))
 print(f"Server listening on {HOST}:{PORT}")
 
 while True:
-    message, address = server.recvfrom(SIZE)
-    arrival = time.time()
+    msg, addr = server.recvfrom(SIZE)
+    header = msg[:header_size]
+    payload = msg[header_size:]
 
-    header = message[:header_size]
-    payload = message[header_size:]
-
-    pv, dev_id, seq, timestamp, msg_type, battery = struct.unpack(
-        header_format, header
-    )
+    pv, dev_id, seq, ts, msg_type, batt = struct.unpack(header_format, header)
 
     print("-------------------------------------")
-    print(f"Packet from {address}")
-    print(f"protocol version: {pv}")
-    print(f"device ID: {dev_id}")
-    print(f"sequence number: {seq}")
-    print(f"timestamp: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))}")
-    print(f"message type: {message_types.get(msg_type)}")
-    print(f"battery: {battery}%")
+    print(f"Packet from {addr}")
+    print(f"seq={seq}, ts={time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(ts))}, type={message_types[msg_type]}")
 
-    # =========================
-    # INIT handshake
-    # =========================
+    # ---- INIT ----
     if msg_type == 0 and dev_id == 0:
-        assigned_id = next_device_id
+        assigned = next_device_id
         next_device_id += 1
 
-        print(f"[SERVER] New device connected → assigned device_ID = {assigned_id}")
-        get_device_state(assigned_id)
+        print(f"[SERVER] Assigning new device ID: {assigned}")
 
-        resp_header = struct.pack(
+        response = struct.pack(
             header_format,
-            pv,            # protocol version
-            assigned_id,   # new device ID
-            0,             # seq for response
-            int(time.time()),
-            0,             # INIT
-            100            # dummy battery
+            pv, assigned, 0, int(time.time()), 0, 100
         )
-        server.sendto(resp_header + b"ASSIGNED_ID", address)
-        print(f"[SERVER] Sent assigned ID {assigned_id} to {address}")
+        server.sendto(response + b"ASSIGNED_ID", addr)
+        get_state(assigned)
         continue
 
-    # =========================
-    # NORMAL PACKET
-    # =========================
-    state = get_device_state(dev_id)
-    state["recv_count"] += 1
+    # ---- NORMAL PACKET ----
+    state = get_state(dev_id)
+    state["recv"] += 1
 
-    # Track newest sensor timestamp seen for this device
-    if timestamp > state["newest_ts"]:
-        state["newest_ts"] = timestamp
+    # Update newest sensor timestamp seen
+    state["newest_ts"] = max(state["newest_ts"], ts)
 
-    # Push into timestamp-ordered heap
-    heapq.heappush(state["buffer"], (timestamp, seq, payload, msg_type, arrival))
+    # Push packet into timestamp-ordered buffer
+    heapq.heappush(state["buffer"], (ts, seq, payload, msg_type))
 
-    # Try to flush any packets that are now safe to output
-    flush_ready_packets(state, dev_id)
+    # Attempt to flush reordering buffer
+    flush(state, dev_id)
 
-    print(
-        f"[STATE] dev={dev_id} recv={state['recv_count']} "
-        f"dups={state['dup_count']} gaps={state['gap_count']}"
-    )
+    print(f"[STATE] recv={state['recv']} dups={state['dups']} gaps={state['gaps']}")
