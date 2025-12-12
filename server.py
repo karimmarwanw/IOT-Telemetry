@@ -20,7 +20,7 @@ next_device_id = 1
 device_state = {}
 REORDER_WINDOW = 0.050
 
-CSV_FILE = "telemetry_log.csv"
+CSV_FILE = "Examples/telemetry_log.csv"
 
 # ---------------- METRIC GLOBALS ----------------
 total_bytes_received = 0
