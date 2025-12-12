@@ -202,26 +202,26 @@ To ensure reproducibility, the project includes scripts that automatically apply
 
 ```text
 tests/netem.sh
-run_experiment.py
+run_experiment.sh
 ```
 
 ### Run Experiments
 
 ```bash
 # Baseline (no impairment)
-python3 run_experiment.py none
+./run_experiment.sh none
 
 # 5% Packet Loss
-python3 run_experiment.py loss
+./run_experiment.sh loss
 
 # Delay + Jitter
-python3 run_experiment.py delay
+./run_experiment.sh delay
 
 # Packet Duplication
-python3 run_experiment.py duplicate
+./run_experiment.sh duplicate
 
 # Packet Reordering
-python3 run_experiment.py reorder
+./run_experiment.sh reorder
 ```
 
 Each run produces:
