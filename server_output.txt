@@ -1,0 +1,203 @@
+Server listening on 127.0.0.1:4444
+-------------------------------------
+[INIT] New device from ('127.0.0.1', 57932) → assigned device_ID = 1
+-------------------------------------
+[ORDERED] device=1
+sequence number: 2
+timestamp: 2025-12-12 18:37:28 (sensor)
+arrival:   2025-12-12 18:37:28.498 (server)
+message type: DATA
+battery: 100%
+payload: 37
+[STATE] dev=1 recv=2 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 3
+timestamp: 2025-12-12 18:37:28 (sensor)
+arrival:   2025-12-12 18:37:28.498 (server)
+message type: HEARTBEAT
+battery: 100%
+payload: alive
+[STATE] dev=1 recv=3 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 4
+timestamp: 2025-12-12 18:37:29 (sensor)
+arrival:   2025-12-12 18:37:29.516 (server)
+message type: HEARTBEAT
+battery: 100%
+payload: alive
+[STATE] dev=1 recv=4 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 5
+timestamp: 2025-12-12 18:37:30 (sensor)
+arrival:   2025-12-12 18:37:30.528 (server)
+message type: HEARTBEAT
+battery: 99%
+payload: alive
+[STATE] dev=1 recv=5 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 6
+timestamp: 2025-12-12 18:37:31 (sensor)
+arrival:   2025-12-12 18:37:31.539 (server)
+message type: HEARTBEAT
+battery: 99%
+payload: alive
+[STATE] dev=1 recv=6 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 7
+timestamp: 2025-12-12 18:37:32 (sensor)
+arrival:   2025-12-12 18:37:32.547 (server)
+message type: DATA
+battery: 99%
+payload: 34
+[STATE] dev=1 recv=7 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 8
+timestamp: 2025-12-12 18:37:32 (sensor)
+arrival:   2025-12-12 18:37:32.548 (server)
+message type: HEARTBEAT
+battery: 99%
+payload: alive
+[STATE] dev=1 recv=8 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 9
+timestamp: 2025-12-12 18:37:33 (sensor)
+arrival:   2025-12-12 18:37:33.553 (server)
+message type: HEARTBEAT
+battery: 99%
+payload: alive
+[STATE] dev=1 recv=9 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 10
+timestamp: 2025-12-12 18:37:34 (sensor)
+arrival:   2025-12-12 18:37:34.566 (server)
+message type: HEARTBEAT
+battery: 98%
+payload: alive
+[STATE] dev=1 recv=10 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 11
+timestamp: 2025-12-12 18:37:35 (sensor)
+arrival:   2025-12-12 18:37:35.588 (server)
+message type: HEARTBEAT
+battery: 98%
+payload: alive
+[STATE] dev=1 recv=11 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 12
+timestamp: 2025-12-12 18:37:36 (sensor)
+arrival:   2025-12-12 18:37:36.550 (server)
+message type: DATA
+battery: 98%
+payload: 35
+[STATE] dev=1 recv=12 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 13
+timestamp: 2025-12-12 18:37:36 (sensor)
+arrival:   2025-12-12 18:37:36.601 (server)
+message type: HEARTBEAT
+battery: 98%
+payload: alive
+[STATE] dev=1 recv=13 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 14
+timestamp: 2025-12-12 18:37:37 (sensor)
+arrival:   2025-12-12 18:37:37.611 (server)
+message type: HEARTBEAT
+battery: 98%
+payload: alive
+[STATE] dev=1 recv=14 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 15
+timestamp: 2025-12-12 18:37:38 (sensor)
+arrival:   2025-12-12 18:37:38.621 (server)
+message type: HEARTBEAT
+battery: 97%
+payload: alive
+[STATE] dev=1 recv=15 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 16
+timestamp: 2025-12-12 18:37:39 (sensor)
+arrival:   2025-12-12 18:37:39.637 (server)
+message type: HEARTBEAT
+battery: 97%
+payload: alive
+[STATE] dev=1 recv=16 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 17
+timestamp: 2025-12-12 18:37:40 (sensor)
+arrival:   2025-12-12 18:37:40.555 (server)
+message type: DATA
+battery: 97%
+payload: 37
+[STATE] dev=1 recv=17 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 18
+timestamp: 2025-12-12 18:37:40 (sensor)
+arrival:   2025-12-12 18:37:40.661 (server)
+message type: HEARTBEAT
+battery: 97%
+payload: alive
+[STATE] dev=1 recv=18 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 19
+timestamp: 2025-12-12 18:37:41 (sensor)
+arrival:   2025-12-12 18:37:41.667 (server)
+message type: HEARTBEAT
+battery: 97%
+payload: alive
+[STATE] dev=1 recv=19 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 20
+timestamp: 2025-12-12 18:37:42 (sensor)
+arrival:   2025-12-12 18:37:42.681 (server)
+message type: HEARTBEAT
+battery: 96%
+payload: alive
+[STATE] dev=1 recv=20 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 21
+timestamp: 2025-12-12 18:37:43 (sensor)
+arrival:   2025-12-12 18:37:43.685 (server)
+message type: HEARTBEAT
+battery: 96%
+payload: alive
+[STATE] dev=1 recv=21 dups=0 gaps=0
+-------------------------------------
+[ORDERED] device=1
+sequence number: 22
+timestamp: 2025-12-12 18:37:44 (sensor)
+arrival:   2025-12-12 18:37:44.587 (server)
+message type: DATA
+battery: 96%
+payload: 35
+[STATE] dev=1 recv=22 dups=0 gaps=0
+
+
+====================================
+FINAL METRICS (SERVER SHUTDOWN)
+====================================
+packets_received     = 22
+bytes_per_report     = 16.14
+duplicate_rate       = 0.0000
+sequence_gap_count   = 0
+cpu_ms_per_report    = 0.770 ms
+====================================
